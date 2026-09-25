@@ -91,6 +91,10 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .marker-cluster{border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
 .sheet-handle{display:none}
+.leaflet-control-attribution{border-radius:8px;margin:0 0 8px 8px!important;font-size:10.5px;cursor:pointer;background:color-mix(in srgb,var(--panel) 85%,transparent)!important;color:var(--muted)}
+.leaflet-control-attribution.folded{width:22px;height:22px;padding:0!important;overflow:hidden;color:transparent;border-radius:50%;position:relative}
+.leaflet-control-attribution.folded::after{content:"i";position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font:600 12px/1 Georgia,serif}
+.leaflet-control-attribution.folded a{pointer-events:none}
 .sheet-toggle{display:none;flex:none;align-items:center;gap:4px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:13px;cursor:pointer}
 .locate{position:absolute;top:12px;right:12px;z-index:600;width:42px;height:42px;border-radius:12px;border:0;background:var(--panel);color:var(--me);box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
 .locate.busy{opacity:.5}
@@ -176,7 +180,12 @@ const state = { q:"", city:"all", cats:new Set(), me:null, radius:3, minRating:0
 const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches;
 
 // map
-const map = L.map("map", {zoomControl:false, attributionControl:true}).setView([10.7769, 106.7009], 13);
+const map = L.map("map", {zoomControl:false, attributionControl:false}).setView([10.7769, 106.7009], 13);
+// map credits (required by Esri/OSM terms) folded into a small ⓘ that expands on tap
+const attrib = L.control.attribution({prefix:false, position:"bottomleft"}).addTo(map);
+const attribEl = attrib.getContainer();
+attribEl.classList.add("folded");
+L.DomEvent.on(attribEl, "click", e => { L.DomEvent.stopPropagation(e); attribEl.classList.toggle("folded"); });
 L.control.zoom({position: innerWidth <= 760 ? "topleft" : "bottomright"}).addTo(map);
 const pad = () => ({paddingTopLeft:[40,40], paddingBottomRight:[40, innerWidth <= 760 ? document.getElementById("side").offsetHeight + 20 : 40]});
 let tiles = [];
