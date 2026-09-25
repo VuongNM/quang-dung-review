@@ -72,8 +72,10 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .closed{display:inline-block;font-size:10.5px;background:#c92a2a;color:#fff;border-radius:6px;padding:0 5px;font-weight:600}
 .empty{padding:30px 16px;text-align:center;color:var(--muted)}
 #map{height:100%;width:100%;background:var(--bg)}
-.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
-.pin span{transform:rotate(45deg);font-size:15px;line-height:1}
+.pin{width:var(--pin);height:var(--pin);border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pin span{transform:rotate(45deg);font-size:calc(var(--pin) * .5);line-height:1}
+:root{--pin:30px}
+@media (max-width:760px){:root{--pin:22px} .pin{border-width:1.5px} .marker-cluster div{font-size:11px}}
 .pin.approx{opacity:.6;border-style:dashed}
 .me-dot{width:18px;height:18px;border-radius:50%;background:var(--me);border:3px solid #fff;box-shadow:0 0 0 6px rgba(28,126,214,.25)}
 .leaflet-popup-content-wrapper{border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
@@ -88,8 +90,8 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .pop .actions{display:flex;gap:6px}
 .pop .actions a{flex:1;text-align:center;text-decoration:none;font-weight:600;font-size:12.5px;padding:7px 8px;border-radius:9px;background:var(--chip);color:var(--ink)}
 .pop .actions a.primary{background:var(--accent);color:var(--accent-ink)}
-.marker-cluster{width:40px;height:40px;cursor:pointer;border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
-.marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
+.marker-cluster{width:calc(var(--pin) + 10px);height:calc(var(--pin) + 10px);cursor:pointer;border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.marker-cluster div{width:var(--pin);height:var(--pin);margin:5px;border-radius:50%;text-align:center;line-height:var(--pin);background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
 .sheet-handle{display:none}
 .leaflet-control-attribution{border-radius:8px;margin:0 0 8px 8px!important;font-size:10.5px;cursor:pointer;background:color-mix(in srgb,var(--panel) 85%,transparent)!important;color:var(--muted)}
 .leaflet-control-attribution.folded{width:22px;height:22px;padding:0!important;overflow:hidden;color:transparent;border-radius:50%;position:relative}
@@ -200,6 +202,7 @@ setTiles();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setTiles);
 // clustering: only 4+ nearby places become a bubble; 2-3 stay as separate pins
 const layer = L.layerGroup().addTo(map);
+const PIN = innerWidth <= 760 ? 22 : 30;   // matches --pin in CSS
 let index = null, shown = new Map();   // key -> Leaflet marker currently on the map
 function render(){
   if (!index) return;
@@ -209,7 +212,7 @@ function render(){
     const [lng, lat] = f.geometry.coordinates;
     if (f.properties.cluster) {
       const key = `c${z}:${f.id}`, n = f.properties.point_count;
-      const m = shown.get(key) || L.marker([lat, lng], {icon:L.divIcon({className:"marker-cluster", iconSize:[40,40],
+      const m = shown.get(key) || L.marker([lat, lng], {icon:L.divIcon({className:"marker-cluster", iconSize:[PIN+10,PIN+10],
         html:`<div><span>${n}</span></div>`})}).on("click", () => map.flyTo([lat, lng], Math.min(index.getClusterExpansionZoom(f.id), 19)));
       next.set(key, m);
     } else {
@@ -231,7 +234,7 @@ PLACES.forEach((p,i) => {
   p.latest = Math.max(...p.videos.map(v => +v.date || 0));
   p.hay = norm([p.name,p.dish,p.address,p.district,p.city,...p.videos.map(v=>v.title)].join(" "));
   const c = CATS[p.cat];
-  p.marker = L.marker([p.lat,p.lng], {icon:L.divIcon({className:"", iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28],
+  p.marker = L.marker([p.lat,p.lng], {icon:L.divIcon({className:"", iconSize:[PIN,PIN], iconAnchor:[PIN/2,PIN], popupAnchor:[0,-PIN+2],
     html:`<div class="pin ${p.closed?"approx":""}" style="background:${c.color}"><span>${c.icon}</span></div>`}), title:p.name});
   p.marker.bindPopup(() => popup(p), {maxWidth:320});
   p.marker.on("click", () => select(p, false));
