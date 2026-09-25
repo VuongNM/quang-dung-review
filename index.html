@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bản đồ quán Dũng ăn</title>
-<meta name="description" content="Bản đồ các quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube.">
+<title>Quang Dũng review</title>
+<meta name="description" content="Quang Dũng review: bản đồ các quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -72,7 +72,6 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .closed{display:inline-block;font-size:10.5px;background:#c92a2a;color:#fff;border-radius:6px;padding:0 5px;font-weight:600}
 .empty{padding:30px 16px;text-align:center;color:var(--muted)}
 #map{height:100%;width:100%;background:var(--bg)}
-#map.dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9) saturate(.6)}
 .pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .pin span{transform:rotate(45deg);font-size:15px;line-height:1}
 .pin.approx{opacity:.6;border-style:dashed}
@@ -92,8 +91,8 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .marker-cluster{border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
 .sheet-handle{display:none}
-.styleBtn{position:absolute;top:12px;right:58px;z-index:600;height:38px;padding:0 12px;border-radius:10px;border:0;background:var(--panel);color:var(--ink);box-shadow:var(--shadow);cursor:pointer;font-size:12.5px;font-weight:600}
-.theme{position:absolute;top:12px;right:12px;z-index:600;width:38px;height:38px;border-radius:10px;border:0;background:var(--panel);box-shadow:var(--shadow);cursor:pointer;font-size:17px}
+.locate{position:absolute;top:12px;right:12px;z-index:600;width:42px;height:42px;border-radius:12px;border:0;background:var(--panel);color:var(--me);box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
+.locate.busy{opacity:.5}
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:1fr}
   #mapwrap{grid-row:1;grid-column:1}
@@ -111,7 +110,7 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
   <aside id="side">
     <div class="sheet-handle" id="handle" title="Kéo lên/xuống"></div>
     <header>
-      <h1>Dũng ăn <span>ở đâu?</span></h1>
+      <h1>Quang Dũng <span>review</span></h1>
       <div class="sub">Quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube</div>
     </header>
     <div class="controls">
@@ -135,8 +134,7 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
   </aside>
   <div id="mapwrap" style="position:relative;min-height:0">
     <div id="map"></div>
-    <button class="theme" id="theme" title="Đổi giao diện sáng/tối">◐</button>
-    <button class="styleBtn" id="styleBtn" title="Đổi kiểu bản đồ">Bản đồ chi tiết</button>
+    <button class="locate" id="locate" title="Hiện vị trí của tôi" aria-label="Hiện vị trí của tôi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -164,45 +162,26 @@ const $ = s => document.querySelector(s);
 const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const state = { q:"", city:"all", cats:new Set(), me:null, radius:3, minRating:0, hideClosed:true, sort:"new", active:null };
 
-// theme
-const savedTheme = store.get("theme"); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-$("#theme").onclick = () => {
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
-  const next = cur === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next; store.set("theme", next); setTiles();
-};
-const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+// theme follows the device setting
+const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches;
 
 // map
 const map = L.map("map", {zoomControl:false, attributionControl:true}).setView([10.7769, 106.7009], 13);
 L.control.zoom({position: innerWidth <= 760 ? "topleft" : "bottomright"}).addTo(map);
 const pad = () => ({paddingTopLeft:[40,40], paddingBottomRight:[40, innerWidth <= 760 ? document.getElementById("side").offsetHeight + 20 : 40]});
 let tiles = [];
-let mapStyle = store.get("mapStyle") || "simple";
 const ESRI = n => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${n}/MapServer/tile/{z}/{y}/{x}`;
 const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
 function setTiles(){
   tiles.forEach(t => map.removeLayer(t));
   const dark = isDark();
-  if (mapStyle === "simple") {
-    const tone = dark ? "Dark" : "Light";
-    tiles = [
-      L.tileLayer(ESRI(`World_${tone}_Gray_Base`), {maxZoom:19, maxNativeZoom:16, attribution:ESRI_ATTR}),
-      L.tileLayer(ESRI(`World_${tone}_Gray_Reference`), {maxZoom:19, maxNativeZoom:16}),
-    ];
-  } else {
-    tiles = [L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'})];
-  }
+  const tone = dark ? "Dark" : "Light";
+  tiles = [
+    L.tileLayer(ESRI(`World_${tone}_Gray_Base`), {maxZoom:19, maxNativeZoom:16, attribution:ESRI_ATTR}),
+    L.tileLayer(ESRI(`World_${tone}_Gray_Reference`), {maxZoom:19, maxNativeZoom:16}),
+  ];
   tiles.forEach(t => t.addTo(map));
-  document.getElementById("map").classList.toggle("dark", dark && mapStyle !== "simple");
-  const b = document.getElementById("styleBtn");
-  if (b) b.textContent = mapStyle === "simple" ? "Bản đồ chi tiết" : "Bản đồ tối giản";
 }
-document.getElementById("styleBtn").onclick = () => {
-  mapStyle = mapStyle === "simple" ? "detail" : "simple"; store.set("mapStyle", mapStyle); setTiles();
-};
 setTiles();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setTiles);
 const cluster = L.markerClusterGroup({maxClusterRadius:40, showCoverageOnHover:false, spiderfyOnMaxZoom:true});
@@ -284,30 +263,53 @@ $("#radius").onclick = e => {
   update(true);
 };
 
+// blue dot for the user's position (shown by the locate button and by "Quán gần tôi")
+let myPos = null;
+function showMe(me){
+  myPos = me;
+  if (!meMarker) {
+    meMarker = L.marker([me.lat,me.lng], {icon:L.divIcon({className:"",html:'<div class="me-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]}), zIndexOffset:1000, interactive:false}).addTo(map);
+    meCircle = L.circle([me.lat,me.lng], {radius:1, color:getComputedStyle(document.documentElement).getPropertyValue("--me"), weight:1.5, fillOpacity:.06, interactive:false}).addTo(map);
+  } else { meMarker.setLatLng([me.lat,me.lng]); meCircle.setLatLng([me.lat,me.lng]); }
+}
+function getPos(ok, fail){
+  if (!navigator.geolocation) return fail ? fail({code:0}) : alert("Trình duyệt không hỗ trợ định vị.");
+  navigator.geolocation.getCurrentPosition(p => ok({lat:p.coords.latitude, lng:p.coords.longitude}), err => {
+    if (fail) return fail(err);
+    alert(err.code === 1 ? "Bạn đã chặn quyền truy cập vị trí. Hãy cho phép trong cài đặt trình duyệt." : "Không lấy được vị trí. Thử lại nhé.");
+  }, {enableHighAccuracy:true, timeout:12000, maximumAge:60000});
+}
+$("#locate").onclick = () => {
+  $("#locate").classList.add("busy");
+  getPos(me => { $("#locate").classList.remove("busy"); showMe(me); map.setView([me.lat,me.lng], 16); },
+         err => { $("#locate").classList.remove("busy");
+           alert(err.code === 1 ? "Bạn đã chặn quyền truy cập vị trí. Hãy cho phép trong cài đặt trình duyệt." : "Không lấy được vị trí. Thử lại nhé."); });
+};
+// if the user already allowed location before, show the dot straight away
+try { navigator.permissions?.query({name:"geolocation"}).then(r => { if (r.state === "granted") getPos(showMe, () => {}); }); } catch(e) {}
+
 $("#nearBtn").onclick = () => {
   if (state.me) { // turn off
     state.me = null; $("#nearBtn").classList.remove("on"); $("#nearBtn").textContent = "📍 Quán gần tôi";
     $("#radius").classList.remove("show");
-    if (meMarker) { map.removeLayer(meMarker); map.removeLayer(meCircle); }
+    if (meCircle) meCircle.setRadius(1);
+    if (state.prevCity) { state.city = state.prevCity; $("#city").value = state.city; }
     if (state.sort === "dist") { state.sort = "new"; $("#sort").value = "new"; }
     return update(true);
   }
-  if (!navigator.geolocation) return alert("Trình duyệt không hỗ trợ định vị.");
   $("#nearBtn").textContent = "Đang tìm vị trí…";
-  navigator.geolocation.getCurrentPosition(pos => {
-    state.me = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+  getPos(me => {
+    state.me = me;
     $("#nearBtn").classList.add("on"); $("#nearBtn").textContent = "📍 Đang dùng vị trí của bạn ✕";
     $("#radius").classList.add("show");
-    state.city = "all"; $("#city").value = "all";
+    state.prevCity = state.city; state.city = "all"; $("#city").value = "all";
     state.sort = "dist"; $("#sort").value = "dist";
-    if (meMarker) { map.removeLayer(meMarker); map.removeLayer(meCircle); }
-    meMarker = L.marker([state.me.lat,state.me.lng], {icon:L.divIcon({className:"",html:'<div class="me-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]}), zIndexOffset:1000, interactive:false}).addTo(map);
-    meCircle = L.circle([state.me.lat,state.me.lng], {radius:1, color:getComputedStyle(document.documentElement).getPropertyValue("--me"), weight:1.5, fillOpacity:.06, interactive:false}).addTo(map);
+    showMe(state.me);
     update(true);
   }, err => {
     $("#nearBtn").textContent = "📍 Quán gần tôi";
     alert(err.code === 1 ? "Bạn đã chặn quyền truy cập vị trí. Hãy cho phép trong cài đặt trình duyệt." : "Không lấy được vị trí. Thử lại nhé.");
-  }, {enableHighAccuracy:true, timeout:12000, maximumAge:60000});
+  });
 };
 
 function filtered(ignoreCats){

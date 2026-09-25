@@ -1,2 +1,6 @@
-pipeline/
 .DS_Store
+__pycache__/
+pipeline/*
+!pipeline/update.py
+!pipeline/seen.json
+!pipeline/unresolved.md
