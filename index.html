@@ -91,28 +91,38 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .marker-cluster{border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
 .sheet-handle{display:none}
+.sheet-toggle{display:none;flex:none;align-items:center;gap:4px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:13px;cursor:pointer}
 .locate{position:absolute;top:12px;right:12px;z-index:600;width:42px;height:42px;border-radius:12px;border:0;background:var(--panel);color:var(--me);box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
 .locate.busy{opacity:.5}
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:1fr}
   #mapwrap{grid-row:1;grid-column:1}
-  aside{grid-row:1;grid-column:1;align-self:end;height:46dvh;border-radius:18px 18px 0 0;border-right:0;box-shadow:0 -6px 24px rgba(0,0,0,.18);transition:height .25s}
-  aside.min{height:190px}
-  aside.max{height:88dvh}
-  .sheet-handle{display:block;width:44px;height:5px;border-radius:5px;background:var(--line);margin:8px auto 0;cursor:pointer}
-  header{padding:8px 16px 8px}
+  aside{grid-row:1;grid-column:1;align-self:end;height:50dvh;border-radius:18px 18px 0 0;border-right:0;box-shadow:0 -6px 24px rgba(0,0,0,.18);transition:height .28s cubic-bezier(.2,.8,.2,1);touch-action:pan-x pan-y}
+  aside.dragging{transition:none}
+  .grab{touch-action:none;cursor:grab}
+  .sheet-handle{display:block;width:44px;height:5px;border-radius:5px;background:var(--line);margin:8px auto 0}
+  header{padding:8px 16px 10px;display:flex;align-items:center;gap:10px}
+  header .titles{flex:1;min-width:0}
   h1{font-size:17px}
+  .sheet-toggle{display:inline-flex}
+  header .sub{display:none}
+  .leaflet-bottom{bottom:var(--sheet,0px)}
 }
 </style>
 </head>
 <body>
 <div class="app">
   <aside id="side">
-    <div class="sheet-handle" id="handle" title="Kéo lên/xuống"></div>
-    <header>
-      <h1>Quang Dũng <span>review</span></h1>
-      <div class="sub">Quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube</div>
-    </header>
+    <div class="grab" id="grab">
+      <div class="sheet-handle" title="Kéo lên/xuống"></div>
+      <header>
+        <div class="titles">
+          <h1>Quang Dũng <span>review</span></h1>
+          <div class="sub">Quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube</div>
+        </div>
+        <button class="sheet-toggle" id="sheetToggle" type="button">Bản đồ ▾</button>
+      </header>
+    </div>
     <div class="controls">
       <div class="row">
         <input class="search" id="q" type="search" placeholder="Tìm quán, món, đường…" autocomplete="off">
@@ -356,14 +366,70 @@ function select(p, fly){
   const el = document.querySelector(`.card[data-id="${p.id}"]`);
   if (el) { el.classList.add("active"); if (!fly) el.scrollIntoView({block:"nearest", behavior:"smooth"}); }
   if (fly) {
-    if (innerWidth <= 760) side.className = "min";
+    if (isMobile()) setSheet("peek");
     cluster.zoomToShowLayer(p.marker, () => p.marker.openPopup());
   }
 }
 
-// mobile bottom sheet
-const side = $("#side");
-$("#handle").onclick = () => { side.className = side.className === "max" ? "min" : side.className === "min" ? "" : "max"; };
+// mobile bottom sheet: three snap heights, drag the title bar, swipe the list
+const side = $("#side"), list = $("#list");
+const isMobile = () => innerWidth <= 760;
+const ORDER = ["peek", "mid", "max"];
+const sheetH = s => s === "peek" ? $("#grab").offsetHeight + 4 : s === "mid" ? Math.round(innerHeight * .5) : Math.round(innerHeight * .9);
+function setSheet(s){
+  if (!isMobile()) { side.style.height = ""; delete side.dataset.state; document.documentElement.style.removeProperty("--sheet"); return; }
+  side.dataset.state = s;
+  side.style.height = sheetH(s) + "px";
+  document.documentElement.style.setProperty("--sheet", sheetH(s) + "px");
+  $("#sheetToggle").textContent = s === "peek" ? "Danh sách ▴" : "Bản đồ ▾";
+}
+$("#sheetToggle").onclick = e => { e.stopPropagation(); setSheet(side.dataset.state === "peek" ? "mid" : "peek"); };
+$("#grab").addEventListener("click", e => { if (e.target.closest("button")) return; if (side.dataset.state === "peek") setSheet("mid"); });
+map.on("dragstart", () => { if (isMobile() && side.dataset.state !== "peek") setSheet("peek"); });
+addEventListener("resize", () => setSheet(side.dataset.state || "mid"));
+
+let drag = null;
+side.addEventListener("touchstart", e => {
+  if (!isMobile() || e.touches.length !== 1) return;
+  const t = e.touches[0];
+  drag = {y0:t.clientY, x0:t.clientX, t0:Date.now(), h0:parseFloat(side.style.height) || side.offsetHeight, inList:!!e.target.closest("#list"), mode:null, y:t.clientY, t:Date.now(), v:0};
+}, {passive:true});
+side.addEventListener("touchmove", e => {
+  if (!drag) return;
+  const t = e.touches[0], dy = t.clientY - drag.y0, dx = t.clientX - drag.x0;
+  if (!drag.mode) {
+    if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+    if (Math.abs(dx) > Math.abs(dy)) { drag.mode = "none"; return; }       // horizontal: chips row scroll
+    const st = side.dataset.state;
+    if (!drag.inList) drag.mode = "sheet";
+    else if (dy < 0 && st !== "max") drag.mode = "sheet";                 // swipe up on list: grow sheet first
+    else if (dy > 0 && list.scrollTop <= 0) drag.mode = "sheet";          // pull down at top of list: shrink
+    else drag.mode = "none";
+    if (drag.mode === "sheet") side.classList.add("dragging");
+  }
+  if (drag.mode !== "sheet") return;
+  e.preventDefault();
+  const now = Date.now();
+  drag.v = (t.clientY - drag.y) / Math.max(1, now - drag.t); drag.y = t.clientY; drag.t = now;
+  const h = Math.min(sheetH("max"), Math.max(sheetH("peek"), drag.h0 - dy));
+  side.style.height = h + "px";
+  document.documentElement.style.setProperty("--sheet", h + "px");
+}, {passive:false});
+side.addEventListener("touchend", () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.mode !== "sheet") return;
+  side.classList.remove("dragging");
+  const h = parseFloat(side.style.height) || side.offsetHeight, i = ORDER.indexOf(side.dataset.state);
+  const idx = s => ORDER.indexOf(s);
+  let j = idx(ORDER.reduce((a, s) => Math.abs(sheetH(s) - h) < Math.abs(sheetH(a) - h) ? s : a, "mid"));  // nearest
+  const moved = h - d.h0;                                  // + = pulled up
+  if ((moved > 40 || d.v < -0.5) && j <= i) j = Math.min(2, i + 1);
+  if ((moved < -40 || d.v > 0.5) && j >= i) j = Math.max(0, i - 1);
+  const next = ORDER[j];
+  setSheet(next || "mid");
+});
+setSheet("mid");
 
 update(true);
 </script>
