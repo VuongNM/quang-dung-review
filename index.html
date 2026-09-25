@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bản đồ quán Dũng ăn</title>
+<meta name="description" content="Bản đồ các quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf7f1; --panel:#ffffff; --ink:#1d1a16; --muted:#6f675d; --line:#e9e1d5;
+  --accent:#d9480f; --accent-ink:#fff; --chip:#f3ece2; --chip-on:#1d1a16; --chip-on-ink:#fff;
+  --me:#1c7ed6; --shadow:0 6px 24px rgba(40,30,15,.12);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141210; --panel:#1d1a17; --ink:#f3ede4; --muted:#a99f92; --line:#332e28;
+    --accent:#ff7a3d; --accent-ink:#1a0d05; --chip:#2a2520; --chip-on:#f3ede4; --chip-on-ink:#141210;
+    --me:#4dabf7; --shadow:0 6px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141210; --panel:#1d1a17; --ink:#f3ede4; --muted:#a99f92; --line:#332e28;
+  --accent:#ff7a3d; --accent-ink:#1a0d05; --chip:#2a2520; --chip-on:#f3ede4; --chip-on-ink:#141210;
+  --me:#4dabf7; --shadow:0 6px 24px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Be Vietnam Pro",system-ui,sans-serif;font-size:14px}
+button,input,select{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:400px 1fr;height:100dvh}
+aside{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;background:var(--panel);border-right:1px solid var(--line);z-index:500}
+header{padding:16px 16px 10px}
+h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:12.5px;margin-top:3px}
+.controls{padding:0 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.row{display:flex;gap:8px;align-items:center}
+.search{flex:1;min-width:0;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 12px;outline:none}
+.search:focus{border-color:var(--accent)}
+select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 8px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:var(--chip);border-radius:999px;padding:6px 11px;cursor:pointer;white-space:nowrap;font-size:13px}
+.chip.on{background:var(--chip-on);color:var(--chip-on-ink)}
+.chip .n{opacity:.55;margin-left:4px;font-size:11.5px}
+.near{display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:8px}
+.btn{height:36px;border:0;border-radius:10px;padding:0 14px;cursor:pointer;font-weight:600;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;gap:6px}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.on{background:var(--me);color:#fff}
+.radius{display:none;align-items:center;gap:6px;color:var(--muted);font-size:12.5px}
+.radius.show{display:flex}
+.radius button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12.5px}
+.radius button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.toggle{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px;cursor:pointer;user-select:none}
+.meta{padding:8px 16px;color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between;align-items:center}
+.list{flex:1;overflow-y:auto;padding:0 8px 16px}
+.card{display:block;padding:12px 10px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.card:hover{background:var(--chip)}
+.card.active{border-color:var(--accent);background:var(--chip)}
+.card .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.card b{font-size:14.5px;font-weight:700}
+.dist{flex:none;font-weight:700;color:var(--me);font-size:12.5px}
+.card .dish{color:var(--accent);font-size:12.5px;font-weight:600;margin-top:2px}
+.card .addr{color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.4}
+.approx{display:inline-block;font-size:10.5px;border:1px dashed var(--muted);border-radius:6px;padding:0 5px;margin-left:4px;color:var(--muted)}
+.gm{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:600;color:var(--me);text-decoration:none}
+.gm:hover{text-decoration:underline}
+.star{color:#e8a200;font-weight:700}
+.closed{display:inline-block;font-size:10.5px;background:#c92a2a;color:#fff;border-radius:6px;padding:0 5px;font-weight:600}
+.empty{padding:30px 16px;text-align:center;color:var(--muted)}
+#map{height:100%;width:100%;background:var(--bg)}
+#map.dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9) saturate(.6)}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pin span{transform:rotate(45deg);font-size:15px;line-height:1}
+.pin.approx{opacity:.6;border-style:dashed}
+.me-dot{width:18px;height:18px;border-radius:50%;background:var(--me);border:3px solid #fff;box-shadow:0 0 0 6px rgba(28,126,214,.25)}
+.leaflet-popup-content-wrapper{border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.leaflet-popup-tip{background:var(--panel)}
+.leaflet-popup-content{margin:14px 16px;font-family:"Be Vietnam Pro",system-ui,sans-serif;min-width:230px}
+.pop h3{margin:0 0 2px;font-size:15.5px}
+.pop .dish{color:var(--accent);font-weight:600;font-size:12.5px}
+.pop .addr{color:var(--muted);font-size:12.5px;margin:6px 0 8px;line-height:1.4}
+.pop .vids{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.pop .vid{display:flex;gap:8px;align-items:center;text-decoration:none;color:var(--ink);font-size:12px;line-height:1.3}
+.pop .vid img{width:72px;height:40px;object-fit:cover;border-radius:6px;flex:none}
+.pop .actions{display:flex;gap:6px}
+.pop .actions a{flex:1;text-align:center;text-decoration:none;font-weight:600;font-size:12.5px;padding:7px 8px;border-radius:9px;background:var(--chip);color:var(--ink)}
+.pop .actions a.primary{background:var(--accent);color:var(--accent-ink)}
+.marker-cluster{border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
+.sheet-handle{display:none}
+.styleBtn{position:absolute;top:12px;right:58px;z-index:600;height:38px;padding:0 12px;border-radius:10px;border:0;background:var(--panel);color:var(--ink);box-shadow:var(--shadow);cursor:pointer;font-size:12.5px;font-weight:600}
+.theme{position:absolute;top:12px;right:12px;z-index:600;width:38px;height:38px;border-radius:10px;border:0;background:var(--panel);box-shadow:var(--shadow);cursor:pointer;font-size:17px}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:1fr}
+  #mapwrap{grid-row:1;grid-column:1}
+  aside{grid-row:1;grid-column:1;align-self:end;height:46dvh;border-radius:18px 18px 0 0;border-right:0;box-shadow:0 -6px 24px rgba(0,0,0,.18);transition:height .25s}
+  aside.min{height:190px}
+  aside.max{height:88dvh}
+  .sheet-handle{display:block;width:44px;height:5px;border-radius:5px;background:var(--line);margin:8px auto 0;cursor:pointer}
+  header{padding:8px 16px 8px}
+  h1{font-size:17px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside id="side">
+    <div class="sheet-handle" id="handle" title="Kéo lên/xuống"></div>
+    <header>
+      <h1>Dũng ăn <span>ở đâu?</span></h1>
+      <div class="sub">Quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube</div>
+    </header>
+    <div class="controls">
+      <div class="row">
+        <input class="search" id="q" type="search" placeholder="Tìm quán, món, đường…" autocomplete="off">
+        <select id="city" aria-label="Thành phố"></select>
+      </div>
+      <div class="chips" id="cats"></div>
+      <div class="near">
+        <button class="btn" id="nearBtn">📍 Quán gần tôi</button>
+        <div class="radius" id="radius">
+          Trong
+          <button data-r="1">1 km</button><button data-r="3" class="on">3 km</button><button data-r="5">5 km</button><button data-r="10">10 km</button><button data-r="0">Tất cả</button>
+        </div>
+        <select id="minRating" aria-label="Đánh giá" style="height:36px;font-size:13px"><option value="0">Mọi đánh giá</option><option value="4">⭐ 4.0+</option><option value="4.3">⭐ 4.3+</option><option value="4.5">⭐ 4.5+</option></select>
+        <label class="toggle"><input type="checkbox" id="hideClosed" checked> Ẩn quán đã đóng</label>
+      </div>
+    </div>
+    <div class="meta"><span id="count"></span><select id="sort" aria-label="Sắp xếp" style="height:30px;font-size:12.5px"><option value="new">Video mới nhất</option><option value="rating">Đánh giá cao</option><option value="name">Tên A–Z</option><option value="dist">Gần nhất</option></select></div>
+    <div class="list" id="list"></div>
+  </aside>
+  <div id="mapwrap" style="position:relative;min-height:0">
+    <div id="map"></div>
+    <button class="theme" id="theme" title="Đổi giao diện sáng/tối">◐</button>
+    <button class="styleBtn" id="styleBtn" title="Đổi kiểu bản đồ">Bản đồ chi tiết</button>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="data.js"></script>
+<script>
+const CATS = {
+  "pho":            {label:"Phở",               icon:"🍜", color:"#e8590c"},
+  "bun-mi-hu-tieu": {label:"Bún · Mì · Hủ tiếu", icon:"🥢", color:"#f08c00"},
+  "banh-mi":        {label:"Bánh mì",           icon:"🥖", color:"#b08900"},
+  "com":            {label:"Cơm · Xôi",         icon:"🍚", color:"#2f9e44"},
+  "lau-nuong":      {label:"Lẩu · Nướng",       icon:"🍲", color:"#c92a2a"},
+  "hai-san":        {label:"Hải sản",           icon:"🦀", color:"#1971c2"},
+  "an-vat":         {label:"Ăn vặt · Tráng miệng", icon:"🥟", color:"#d6336c"},
+  "nhau":           {label:"Lai rai",           icon:"🍺", color:"#9c6b00"},
+  "cafe":           {label:"Cà phê",            icon:"☕", color:"#7b4f2c"},
+  "chay":           {label:"Chay",              icon:"🥬", color:"#37b24d"},
+  "a-au":           {label:"Âu",                icon:"🍝", color:"#6741d9"},
+  "chau-a":         {label:"Nhật · Hoa · Thái", icon:"🍣", color:"#0c8599"},
+  "khac":           {label:"Nhà hàng Việt",              icon:"🍽️", color:"#868e96"},
+};
+const PLACES = (window.PLACES || []).filter(p => p.lat != null && p.lng != null);
+
+const $ = s => document.querySelector(s);
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const state = { q:"", city:"all", cats:new Set(), me:null, radius:3, minRating:0, hideClosed:true, sort:"new", active:null };
+
+// theme
+const savedTheme = store.get("theme"); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+$("#theme").onclick = () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = document.documentElement.dataset.theme || (dark ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next; store.set("theme", next); setTiles();
+};
+const isDark = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+
+// map
+const map = L.map("map", {zoomControl:false, attributionControl:true}).setView([10.7769, 106.7009], 13);
+L.control.zoom({position: innerWidth <= 760 ? "topleft" : "bottomright"}).addTo(map);
+const pad = () => ({paddingTopLeft:[40,40], paddingBottomRight:[40, innerWidth <= 760 ? document.getElementById("side").offsetHeight + 20 : 40]});
+let tiles = [];
+let mapStyle = store.get("mapStyle") || "simple";
+const ESRI = n => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${n}/MapServer/tile/{z}/{y}/{x}`;
+const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
+function setTiles(){
+  tiles.forEach(t => map.removeLayer(t));
+  const dark = isDark();
+  if (mapStyle === "simple") {
+    const tone = dark ? "Dark" : "Light";
+    tiles = [
+      L.tileLayer(ESRI(`World_${tone}_Gray_Base`), {maxZoom:19, maxNativeZoom:16, attribution:ESRI_ATTR}),
+      L.tileLayer(ESRI(`World_${tone}_Gray_Reference`), {maxZoom:19, maxNativeZoom:16}),
+    ];
+  } else {
+    tiles = [L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'})];
+  }
+  tiles.forEach(t => t.addTo(map));
+  document.getElementById("map").classList.toggle("dark", dark && mapStyle !== "simple");
+  const b = document.getElementById("styleBtn");
+  if (b) b.textContent = mapStyle === "simple" ? "Bản đồ chi tiết" : "Bản đồ tối giản";
+}
+document.getElementById("styleBtn").onclick = () => {
+  mapStyle = mapStyle === "simple" ? "detail" : "simple"; store.set("mapStyle", mapStyle); setTiles();
+};
+setTiles();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setTiles);
+const cluster = L.markerClusterGroup({maxClusterRadius:40, showCoverageOnHover:false, spiderfyOnMaxZoom:true});
+map.addLayer(cluster);
+let meMarker, meCircle;
+
+const norm = s => (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"d").toLowerCase();
+PLACES.forEach((p,i) => {
+  p.id = i;
+  p.cat = CATS[p.category] ? p.category : "khac";
+  p.latest = Math.max(...p.videos.map(v => +v.date || 0));
+  p.hay = norm([p.name,p.dish,p.address,p.district,p.city,...p.videos.map(v=>v.title)].join(" "));
+  const c = CATS[p.cat];
+  p.marker = L.marker([p.lat,p.lng], {icon:L.divIcon({className:"", iconSize:[30,30], iconAnchor:[15,30], popupAnchor:[0,-28],
+    html:`<div class="pin ${p.closed?"approx":""}" style="background:${c.color}"><span>${c.icon}</span></div>`}), title:p.name});
+  p.marker.bindPopup(() => popup(p), {maxWidth:320});
+  p.marker.on("click", () => select(p, false));
+});
+
+function km(a,b){
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+const fmtKm = d => d < 1 ? Math.round(d*1000)+" m" : d.toFixed(d<10?1:0)+" km";
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate = d => d ? `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}` : "";
+const ts = t => t>=3600 ? `${Math.floor(t/3600)}:${String(Math.floor(t%3600/60)).padStart(2,"0")}:${String(t%60).padStart(2,"0")}` : `${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`;
+
+const gmapsUrl = p => p.cid ? `https://maps.google.com/?cid=${p.cid}` :
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.name}, ${p.address||p.city||""}`)}`;
+function popup(p){
+  const q = encodeURIComponent(p.address ? `${p.name}, ${p.address}` : `${p.name} ${p.city||""}`);
+  const gm = gmapsUrl(p);
+  const vids = p.videos.slice(0,3).map(v => `
+    <a class="vid" href="https://www.youtube.com/watch?v=${v.v}${v.t?`&t=${v.t}s`:""}" target="_blank" rel="noopener">
+      <img src="https://i.ytimg.com/vi/${v.v}/mqdefault.jpg" alt="" loading="lazy">
+      <span>${esc(v.title.replace(/\s*\|.*$/,""))}<br><span style="color:var(--muted)">${v.t?"▶ "+ts(v.t)+" · ":""}${fmtDate(v.date)}</span></span>
+    </a>`).join("");
+  return `<div class="pop">
+    <h3>${esc(p.name)}</h3>
+    <div class="dish">${CATS[p.cat].icon} ${esc(p.dish||CATS[p.cat].label)}${p.rating?` · <span class="star">★ ${p.rating.toFixed(1)}</span> Google`:""}${p.closed?' <span class="closed">đã đóng cửa</span>':""}</div>
+    <div class="addr">${esc(p.address||"Chưa rõ địa chỉ")}${state.me?`<br><b style="color:var(--me)">Cách bạn ${fmtKm(km(state.me,p))}</b>`:""}</div>
+    <div class="vids">${vids}</div>
+    <div class="actions">
+      <a class="primary" href="https://www.google.com/maps/dir/?api=1&destination=${q}" target="_blank" rel="noopener">Chỉ đường</a>
+      <a href="${gm}" target="_blank" rel="noopener">Mở Google Maps ↗</a>
+    </div></div>`;
+}
+
+// filters UI
+const cityCount = {};
+PLACES.forEach(p => cityCount[p.city||"Khác"] = (cityCount[p.city||"Khác"]||0)+1);
+$("#city").innerHTML = `<option value="all">Tất cả nơi</option>` +
+  Object.entries(cityCount).sort((a,b)=>b[1]-a[1]).map(([c,n]) => `<option value="${esc(c)}">${esc(c)} (${n})</option>`).join("");
+if (cityCount["TP.HCM"]) { state.city = "TP.HCM"; $("#city").value = "TP.HCM"; }
+
+function renderChips(base){
+  const counts = {}; base.forEach(p => counts[p.cat]=(counts[p.cat]||0)+1);
+  $("#cats").innerHTML = `<button class="chip ${state.cats.size?"":"on"}" data-c="">Tất cả</button>` +
+    Object.entries(CATS).filter(([k]) => counts[k]).map(([k,c]) =>
+      `<button class="chip ${state.cats.has(k)?"on":""}" data-c="${k}">${c.icon} ${c.label}<span class="n">${counts[k]}</span></button>`).join("");
+}
+$("#cats").onclick = e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  const c = b.dataset.c;
+  if (!c) state.cats.clear(); else state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c);
+  update(true);
+};
+let qTimer; $("#q").oninput = e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = norm(e.target.value.trim()); update(true); }, 120); };
+$("#city").onchange = e => { state.city = e.target.value; update(true); };
+$("#minRating").onchange = e => { state.minRating = +e.target.value; update(true); };
+$("#hideClosed").onchange = e => { state.hideClosed = e.target.checked; update(true); };
+$("#sort").onchange = e => { state.sort = e.target.value; update(false); };
+$("#radius").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.radius = +b.dataset.r;
+  document.querySelectorAll("#radius button").forEach(x => x.classList.toggle("on", x===b));
+  update(true);
+};
+
+$("#nearBtn").onclick = () => {
+  if (state.me) { // turn off
+    state.me = null; $("#nearBtn").classList.remove("on"); $("#nearBtn").textContent = "📍 Quán gần tôi";
+    $("#radius").classList.remove("show");
+    if (meMarker) { map.removeLayer(meMarker); map.removeLayer(meCircle); }
+    if (state.sort === "dist") { state.sort = "new"; $("#sort").value = "new"; }
+    return update(true);
+  }
+  if (!navigator.geolocation) return alert("Trình duyệt không hỗ trợ định vị.");
+  $("#nearBtn").textContent = "Đang tìm vị trí…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    state.me = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+    $("#nearBtn").classList.add("on"); $("#nearBtn").textContent = "📍 Đang dùng vị trí của bạn ✕";
+    $("#radius").classList.add("show");
+    state.city = "all"; $("#city").value = "all";
+    state.sort = "dist"; $("#sort").value = "dist";
+    if (meMarker) { map.removeLayer(meMarker); map.removeLayer(meCircle); }
+    meMarker = L.marker([state.me.lat,state.me.lng], {icon:L.divIcon({className:"",html:'<div class="me-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]}), zIndexOffset:1000, interactive:false}).addTo(map);
+    meCircle = L.circle([state.me.lat,state.me.lng], {radius:1, color:getComputedStyle(document.documentElement).getPropertyValue("--me"), weight:1.5, fillOpacity:.06, interactive:false}).addTo(map);
+    update(true);
+  }, err => {
+    $("#nearBtn").textContent = "📍 Quán gần tôi";
+    alert(err.code === 1 ? "Bạn đã chặn quyền truy cập vị trí. Hãy cho phép trong cài đặt trình duyệt." : "Không lấy được vị trí. Thử lại nhé.");
+  }, {enableHighAccuracy:true, timeout:12000, maximumAge:60000});
+};
+
+function filtered(ignoreCats){
+  return PLACES.filter(p => {
+    if (state.city !== "all" && (p.city||"Khác") !== state.city) return false;
+    if (state.hideClosed && p.closed) return false;
+    if (state.minRating && !(p.rating >= state.minRating)) return false;
+    if (state.q && !p.hay.includes(state.q)) return false;
+    if (state.me) { p.d = km(state.me,p); if (state.radius && p.d > state.radius) return false; } else p.d = null;
+    if (!ignoreCats && state.cats.size && !state.cats.has(p.cat)) return false;
+    return true;
+  });
+}
+
+function update(fit){
+  renderChips(filtered(true));
+  const rows = filtered(false);
+  const s = state.sort === "dist" && state.me ? (a,b)=>a.d-b.d : state.sort === "rating" ? (a,b)=>(b.rating||0)-(a.rating||0) : state.sort === "name" ? (a,b)=>a.name.localeCompare(b.name,"vi") : (a,b)=>b.latest-a.latest;
+  rows.sort(s);
+  cluster.clearLayers(); cluster.addLayers(rows.map(p => p.marker));
+  $("#count").textContent = `${rows.length} quán` + (state.me && state.radius ? ` trong ${state.radius} km` : "");
+  $("#list").innerHTML = rows.length ? rows.slice(0,400).map(p => `
+    <div class="card ${state.active===p?"active":""}" data-id="${p.id}">
+      <div class="top"><b>${CATS[p.cat].icon} ${esc(p.name)}</b>${p.d!=null?`<span class="dist">${fmtKm(p.d)}</span>`:""}</div>
+      <div class="dish">${esc(p.dish||CATS[p.cat].label)}${p.rating?` · <span class="star">★ ${p.rating.toFixed(1)}</span>`:""}${p.videos.length>1?` · ${p.videos.length} video`:""}${p.closed?' <span class="closed">đã đóng cửa</span>':""}</div>
+      <div class="addr">${esc(p.address||p.city||"")}</div>
+      <a class="gm" href="${gmapsUrl(p)}" target="_blank" rel="noopener">📍 Mở Google Maps ↗</a>
+    </div>`).join("")
+    : `<div class="empty">Không có quán nào khớp.${state.me&&state.radius?"<br>Thử tăng bán kính nhé.":""}</div>`;
+  if (meCircle) meCircle.setRadius(state.me && state.radius ? state.radius*1000 : 1);
+  if (fit) {
+    if (state.me && state.radius) map.fitBounds(meCircle.getBounds(), pad());
+    else if (rows.length) map.fitBounds(L.latLngBounds(rows.map(p=>[p.lat,p.lng])), {...pad(), maxZoom:16});
+  }
+}
+$("#list").onclick = e => {
+  if (e.target.closest("a")) return;
+  const c = e.target.closest(".card"); if (!c) return;
+  select(PLACES[+c.dataset.id], true);
+};
+function select(p, fly){
+  state.active = p;
+  document.querySelectorAll(".card.active").forEach(x => x.classList.remove("active"));
+  const el = document.querySelector(`.card[data-id="${p.id}"]`);
+  if (el) { el.classList.add("active"); if (!fly) el.scrollIntoView({block:"nearest", behavior:"smooth"}); }
+  if (fly) {
+    if (innerWidth <= 760) side.className = "min";
+    cluster.zoomToShowLayer(p.marker, () => p.marker.openPopup());
+  }
+}
+
+// mobile bottom sheet
+const side = $("#side");
+$("#handle").onclick = () => { side.className = side.className === "max" ? "min" : side.className === "min" ? "" : "max"; };
+
+update(true);
+</script>
+</body>
+</html>
