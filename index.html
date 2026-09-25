@@ -6,7 +6,6 @@
 <title>Quang Dũng review</title>
 <meta name="description" content="Quang Dũng review: bản đồ các quán ăn đạo diễn Nguyễn Quang Dũng review trên YouTube.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -88,7 +87,7 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
 .pop .actions{display:flex;gap:6px}
 .pop .actions a{flex:1;text-align:center;text-decoration:none;font-weight:600;font-size:12.5px;padding:7px 8px;border-radius:9px;background:var(--chip);color:var(--ink)}
 .pop .actions a.primary{background:var(--accent);color:var(--accent-ink)}
-.marker-cluster{border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.marker-cluster{width:40px;height:40px;cursor:pointer;border-radius:50%;background:color-mix(in srgb,var(--accent) 30%,transparent)}
 .marker-cluster div{width:30px;height:30px;margin:5px;border-radius:50%;text-align:center;line-height:30px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12.5px;font-family:"Be Vietnam Pro",sans-serif}
 .sheet-handle{display:none}
 .leaflet-control-attribution{border-radius:8px;margin:0 0 8px 8px!important;font-size:10.5px;cursor:pointer;background:color-mix(in srgb,var(--panel) 85%,transparent)!important;color:var(--muted)}
@@ -152,7 +151,7 @@ select{max-width:48%;height:38px;border:1px solid var(--line);border-radius:10px
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <script src="data.js"></script>
 <script>
 const CATS = {
@@ -203,8 +202,30 @@ function setTiles(){
 }
 setTiles();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setTiles);
-const cluster = L.markerClusterGroup({maxClusterRadius:40, showCoverageOnHover:false, spiderfyOnMaxZoom:true});
-map.addLayer(cluster);
+// clustering: only 4+ nearby places become a bubble; 2-3 stay as separate pins
+const layer = L.layerGroup().addTo(map);
+let index = null, shown = new Map();   // key -> Leaflet marker currently on the map
+function render(){
+  if (!index) return;
+  const b = map.getBounds(), z = Math.round(map.getZoom());
+  const next = new Map();
+  for (const f of index.getClusters([b.getWest()-.05, b.getSouth()-.05, b.getEast()+.05, b.getNorth()+.05], z)) {
+    const [lng, lat] = f.geometry.coordinates;
+    if (f.properties.cluster) {
+      const key = `c${z}:${f.id}`, n = f.properties.point_count;
+      const m = shown.get(key) || L.marker([lat, lng], {icon:L.divIcon({className:"marker-cluster", iconSize:[40,40],
+        html:`<div><span>${n}</span></div>`})}).on("click", () => map.flyTo([lat, lng], Math.min(index.getClusterExpansionZoom(f.id), 19)));
+      next.set(key, m);
+    } else {
+      const p = PLACES[f.properties.id];
+      next.set(`p${p.id}`, p.marker);
+    }
+  }
+  for (const [k, m] of shown) if (!next.has(k)) layer.removeLayer(m);
+  for (const [k, m] of next) if (!shown.has(k)) layer.addLayer(m);
+  shown = next;
+}
+map.on("moveend", render);
 let meMarker, meCircle;
 
 const norm = s => (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/Đ/g,"d").toLowerCase();
@@ -268,12 +289,12 @@ $("#cats").onclick = e => {
   const b = e.target.closest(".chip"); if (!b) return;
   const c = b.dataset.c;
   if (!c) state.cats.clear(); else state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c);
-  update(true);
+  update(false);
 };
-let qTimer; $("#q").oninput = e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = norm(e.target.value.trim()); update(true); }, 120); };
+let qTimer; $("#q").oninput = e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = norm(e.target.value.trim()); update(false); }, 120); };
 $("#city").onchange = e => { state.city = e.target.value; update(true); };
-$("#minRating").onchange = e => { state.minRating = +e.target.value; update(true); };
-$("#hideClosed").onchange = e => { state.hideClosed = e.target.checked; update(true); };
+$("#minRating").onchange = e => { state.minRating = +e.target.value; update(false); };
+$("#hideClosed").onchange = e => { state.hideClosed = e.target.checked; update(false); };
 $("#sort").onchange = e => { state.sort = e.target.value; update(false); };
 $("#radius").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
@@ -348,7 +369,9 @@ function update(fit){
   const rows = filtered(false);
   const s = state.sort === "dist" && state.me ? (a,b)=>a.d-b.d : state.sort === "rating" ? (a,b)=>(b.rating||0)-(a.rating||0) : state.sort === "name" ? (a,b)=>a.name.localeCompare(b.name,"vi") : (a,b)=>b.latest-a.latest;
   rows.sort(s);
-  cluster.clearLayers(); cluster.addLayers(rows.map(p => p.marker));
+  index = new Supercluster({radius:45, maxZoom:17, minPoints:4});
+  index.load(rows.map(p => ({type:"Feature", properties:{id:p.id}, geometry:{type:"Point", coordinates:[p.lng, p.lat]}})));
+  layer.clearLayers(); shown = new Map(); render();
   $("#count").textContent = `${rows.length} quán` + (state.me && state.radius ? ` trong ${state.radius} km` : "");
   $("#list").innerHTML = rows.length ? rows.slice(0,400).map(p => `
     <div class="card ${state.active===p?"active":""}" data-id="${p.id}">
@@ -376,7 +399,8 @@ function select(p, fly){
   if (el) { el.classList.add("active"); if (!fly) el.scrollIntoView({block:"nearest", behavior:"smooth"}); }
   if (fly) {
     if (isMobile()) setSheet("peek");
-    cluster.zoomToShowLayer(p.marker, () => p.marker.openPopup());
+    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18), {animate:false});
+    render(); p.marker.openPopup();
   }
 }
 
