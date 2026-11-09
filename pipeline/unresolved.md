@@ -1,2 +1,3 @@
 - 2026-09-28 [Foodtour Món Huế Ở Sài Gòn #1 | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/WBvayKR_ZwE?t=387) — tried: OMA Eastery
 - 2026-10-19 [Những Quán Nhật Ngon Ở Sài Gòn | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/GVrUxrzQDCk?t=874) — tried: Kyoichi Japanese Restaurant
+- 2026-11-09 [ Món Nướng Ngon Ở Sài Gòn | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/IAw2pAcd3qU?t=1154) — tried: Cừu Nướng Chiều Nay
