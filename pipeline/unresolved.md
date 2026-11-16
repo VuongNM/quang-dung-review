@@ -1,3 +1,13 @@
 - 2026-09-28 [Foodtour Món Huế Ở Sài Gòn #1 | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/WBvayKR_ZwE?t=387) — tried: OMA Eastery
 - 2026-10-19 [Những Quán Nhật Ngon Ở Sài Gòn | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/GVrUxrzQDCk?t=874) — tried: Kyoichi Japanese Restaurant
 - 2026-11-09 [ Món Nướng Ngon Ở Sài Gòn | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/IAw2pAcd3qU?t=1154) — tried: Cừu Nướng Chiều Nay
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=20) — tried: Trên đường ra Sân bay
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=230) — tried: Millennium Hilton Bangkok
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=371) — tried: Shoo Loong Kan ICONSIAM
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=654) — tried: Buffet sáng tại Millennium Hilton Bangkok
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=970) — tried: Rongsi Pochana ICONSIAM
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=1162) — tried: Token Sipral Massage ICONSIAM
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=1568) — tried: BOON TONG KEE ICONSIAM
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=1762) — tried: THE LOCAL By Oamthong Thai Cuisine
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=2081) — tried: Kub Kao Kub Pla ICONSIAM
+- 2026-11-16 [Khám Phá Icon Siam Thailand | Đạo diễn Nguyễn Quang Dũng](https://youtu.be/ImDEvqffG4g?t=2396) — tried: Sân bay Thái Lan
